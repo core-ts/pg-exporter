@@ -1,0 +1,25 @@
+{
+  "name": "pg-exporter",
+  "version": "0.2.0",
+  "description": "pg-exporter",
+  "main": "./lib/index.js",
+  "types": "./src/index.ts",
+  "scripts": {
+    "build:lib": "tsc",
+    "clean:lib": "rimraf lib"
+  },
+  "devDependencies": {
+    "tslint": "5.10.0",
+    "typescript": "^3.3.3333"
+  },
+  "publishConfig": {
+    "registry": "https://registry.npmjs.org/"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git@github.com/core-ts/pg-exporter"
+  },
+  "keywords": [
+    "pg-exporter"
+  ]
+}
