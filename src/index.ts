@@ -1,49 +1,37 @@
-import { Pool } from 'pg';
-import QueryStream from 'pg-query-stream';
+import { Pool } from "pg";
+import QueryStream from "pg-query-stream";
 
-export type DataType = 'ObjectId' | 'date' | 'datetime' | 'time'
-  | 'boolean' | 'number' | 'integer' | 'string' | 'text'
-  | 'object' | 'array' | 'binary'
-  | 'primitives' | 'booleans' | 'numbers' | 'integers' | 'strings' | 'dates' | 'datetimes' | 'times';
-export type FormatType = 'currency' | 'percentage' | 'email' | 'url' | 'phone' | 'fax' | 'ipv4' | 'ipv6';
-export type MatchType = 'equal' | 'prefix' | 'contain' | 'max' | 'min'; // contain: default for string, min: default for Date, number
+export interface SimpleMap {
+  [key: string]: string | number | boolean | Date
+}
+export type DataType =
+  | "ObjectId"
+  | "date"
+  | "datetime"
+  | "time"
+  | "boolean"
+  | "number"
+  | "integer"
+  | "string"
+  | "text"
+  | "object"
+  | "array"
+  | "binary"
+  | "primitives"
+  | "booleans"
+  | "numbers"
+  | "integers"
+  | "strings"
+  | "dates"
+  | "datetimes"
+  | "times"
 
 export interface Attribute {
-  name?: string;
-  field?: string;
-  column?: string;
-  type?: DataType;
-  format?: FormatType;
-  required?: boolean;
-  match?: MatchType;
-  default?: string|number|Date|boolean;
-  key?: boolean;
-  unique?: boolean;
-  enum?: string[] | number[];
-  q?: boolean;
-  noinsert?: boolean;
-  noupdate?: boolean;
-  nopatch?: boolean;
-  version?: boolean;
-  length?: number;
-  min?: number;
-  max?: number;
-  gt?: number;
-  lt?: number;
-  precision?: number;
-  scale?: number;
-  exp?: RegExp | string;
-  code?: string;
-  noformat?: boolean;
-  ignored?: boolean;
-  jsonField?: string;
-  link?: string;
-  typeof?: Attributes;
-  true?: string|number;
-  false?: string|number;
+  name?: string
+  column?: string
 }
 export interface Attributes {
-  [key: string]: Attribute;
+  [key: string]: Attribute
 }
 
 export interface StringMap {
@@ -66,12 +54,15 @@ export interface FileWriter {
 }
 export class Exporter<T> {
   constructor(
-    public pool: Pool,
-    public buildQuery: (ctx?: any) => Promise<Statement>,
-    public format: (row: T) => string,
-    public write: (chunk: string) => boolean,
-    public end: (cb?: () => void) => void,
-    public attributes?: Attributes
+    protected pool: Pool,
+    protected filename: string,
+    protected buildQuery: (ctx?: any) => Promise<Statement>,
+    protected format: (row: T) => string,
+    protected write: (chunk: string) => boolean,
+    protected end: (cb?: () => void) => void,
+    protected attributes?: Attributes,
+    protected logInfo?: (msg: string, m?: SimpleMap) => void,
+    protected progressSize: number = 10000,
   ) {
     if (attributes) {
       this.map = buildMap(attributes);
@@ -80,23 +71,38 @@ export class Exporter<T> {
   }
   map?: StringMap;
   async export(ctx?: any): Promise<number> {
-    let i = 0;
     const stmt = await this.buildQuery(ctx);
     const query = new QueryStream(stmt.query, stmt.params);
     await this.pool.connect();
     this.pool.query(query);
+    let i = 0;
+    let k = 0;
     if (this.map) {
       for await (const data of query) {
         i++;
+        k++;
         const obj = mapOne<T>(data, this.map);
         const str = this.format(obj);
         this.write(str);
+        if (k >= this.progressSize) {
+          if (this.logInfo) {
+            this.logInfo(`Progress: ${i} records processed of file '${this.filename}'`);
+          }
+          k = 0;
+        }
       }
     } else {
       for await (const data of query) {
         i++;
+        k++;
         const str = this.format(data);
         this.write(str);
+        if (k >= this.progressSize) {
+          if (this.logInfo) {
+            this.logInfo(`Progress: ${i} records processed of file '${this.filename}'`);
+          }
+          k = 0;
+        }
       }
     }
     this.pool.end();
@@ -107,12 +113,14 @@ export class Exporter<T> {
 // tslint:disable-next-line:max-classes-per-file
 export class ExportService<T> {
   constructor(
-    public pool: Pool,
-    public queryBuilder: QueryBuilder,
-    // tslint:disable-next-line:ban-types
-    public formatter: Formatter<T>,
-    public writer: FileWriter,
-    public attributes?: Attributes
+    protected pool: Pool,
+    protected filename: string,
+    protected queryBuilder: QueryBuilder,
+    protected formatter: Formatter<T>,
+    protected writer: FileWriter,
+    protected attributes?: Attributes,
+    protected logInfo?: (msg: string, m?: SimpleMap) => void,
+    protected progressSize: number = 10000,
   ) {
     if (attributes) {
       this.map = buildMap(attributes);
@@ -121,23 +129,39 @@ export class ExportService<T> {
   }
   map?: StringMap;
   async export(ctx?: any): Promise<number> {
-    let i = 0;
+    
     const stmt = await this.queryBuilder.buildQuery(ctx);
     const query = new QueryStream(stmt.query, stmt.params);
     await this.pool.connect();
     this.pool.query(query);
+    let i = 0;
+    let k = 0;
     if (this.map) {
       for await (const data of query) {
         i++;
+        k++;
         const obj = mapOne<T>(data, this.map);
         const str = this.formatter.format(obj);
         this.writer.write(str);
+        if (k >= this.progressSize) {
+          if (this.logInfo) {
+            this.logInfo(`Progress: ${i} records processed of file '${this.filename}'`);
+          }
+          k = 0;
+        }
       }
     } else {
       for await (const data of query) {
         i++;
+        k++;
         const str = this.formatter.format(data);
         this.writer.write(str);
+        if (k >= this.progressSize) {
+          if (this.logInfo) {
+            this.logInfo(`Progress: ${i} records processed of file '${this.filename}'`);
+          }
+          k = 0;
+        }
       }
     }
     this.pool.end();
@@ -190,7 +214,7 @@ export function buildMap(attrs: Attributes): StringMap|undefined {
   return undefined;
 }
 export function param(i: number): string {
-  return '$' + i;
+  return "$" + i;
 }
 export function select(table: string, attrs: Attributes): string {
   const cols: string[] = [];
@@ -202,5 +226,5 @@ export function select(table: string, attrs: Attributes): string {
     const s = field.toLowerCase();
     cols.push(s);
   }
-  return `select ${cols.join(',')} from ${table}`;
+  return `select ${cols.join(",")} from ${table}`;
 }

@@ -1,7 +1,7 @@
 {
   "name": "pg-exporter",
-  "version": "0.2.0",
-  "description": "pg-exporter",
+  "version": "0.3.3",
+  "description": "pg-exporter is a high-performance PostgreSQL export library for TypeScript",
   "main": "./lib/index.js",
   "types": "./src/index.ts",
   "scripts": {
@@ -9,7 +9,8 @@
     "clean:lib": "rimraf lib"
   },
   "devDependencies": {
-    "tslint": "5.10.0",
+    "pg": "^8.6.0",
+    "pg-query-stream": "^4.17.0",
     "typescript": "^3.3.3333"
   },
   "publishConfig": {
