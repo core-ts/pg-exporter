@@ -1,6 +1,6 @@
 {
   "name": "pg-exporter",
-  "version": "0.3.3",
+  "version": "0.3.4",
   "description": "pg-exporter is a high-performance PostgreSQL export library for TypeScript",
   "main": "./lib/index.js",
   "types": "./src/index.ts",

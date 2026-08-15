@@ -73,7 +73,7 @@ export class Exporter<T> {
   async export(ctx?: any): Promise<number> {
     const stmt = await this.buildQuery(ctx);
     const query = new QueryStream(stmt.query, stmt.params);
-    await this.pool.connect();
+    // await this.pool.connect();
     this.pool.query(query);
     let i = 0;
     let k = 0;
@@ -105,7 +105,7 @@ export class Exporter<T> {
         }
       }
     }
-    this.pool.end();
+    //this.pool.end();
     this.end();
     return i;
   }
@@ -129,10 +129,9 @@ export class ExportService<T> {
   }
   map?: StringMap;
   async export(ctx?: any): Promise<number> {
-    
     const stmt = await this.queryBuilder.buildQuery(ctx);
     const query = new QueryStream(stmt.query, stmt.params);
-    await this.pool.connect();
+    // await this.pool.connect();
     this.pool.query(query);
     let i = 0;
     let k = 0;
@@ -164,7 +163,7 @@ export class ExportService<T> {
         }
       }
     }
-    this.pool.end();
+    // this.pool.end();
     if (this.writer.end) {
       this.writer.end();
     } else if (this.writer.flush) {
@@ -174,7 +173,7 @@ export class ExportService<T> {
   }
 }
 // tslint:disable-next-line:ban-types
-export function mapOne<T>(results: Object, m?: StringMap): T {
+export function mapOne<T>(results: any, m?: StringMap): T {
   const obj: any = results;
   if (!m) {
     return obj;
@@ -190,7 +189,7 @@ export function mapOne<T>(results: Object, m?: StringMap): T {
     if (!k0) {
       k0 = key;
     }
-    obj2[k0] = (obj)[key];
+    obj2[k0] = obj[key];
   }
   return obj2;
 }
